@@ -3,205 +3,62 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>AI Resume Builder</title>
-<link rel="stylesheet" href="/static/style.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<title>Emotion Detector</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{--bg:#0a0a0a;--surface:#111;--surface2:#191919;--border:#2a2a2a;--text:#f0ede8;--muted:#888;--accent:#c8f060;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;}
+  h1{font-family:'Syne',sans-serif;font-size:clamp(2rem,5vw,3rem);font-weight:800;margin-bottom:0.5rem;text-align:center;}
+  h1 span{color:var(--accent);}
+  .subtitle{color:var(--muted);margin-bottom:2rem;text-align:center;}
+  .video-wrap{position:relative;border:1px solid var(--border);border-radius:16px;overflow:hidden;max-width:640px;width:100%;}
+  .video-wrap img{width:100%;display:block;}
+  .emotion-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 2rem;margin-top:1.5rem;display:flex;align-items:center;gap:1.5rem;max-width:640px;width:100%;}
+  .emotion-label{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;color:var(--accent);text-transform:capitalize;min-width:160px;}
+  .confidence{color:var(--muted);font-size:0.9rem;}
+  .emojis{display:flex;gap:0.75rem;margin-top:1.5rem;}
+  .emoji-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.6rem 1rem;font-size:0.85rem;color:var(--muted);display:flex;align-items:center;gap:0.4rem;}
+  .emoji-card.active{border-color:rgba(200,240,96,0.5);color:var(--accent);}
+</style>
 </head>
 <body>
-<nav>
-  <div class="nav-logo">Resume<span>AI</span></div>
-</nav>
+<h1>Emotion <span>Detector</span></h1>
+<p class="subtitle">Real-time facial emotion recognition powered by deep learning.</p>
 
-<div class="wrap">
-  <div class="left">
-    <h1>Build your resume<br><span>with AI</span></h1>
-    <p class="subtitle">Fill in your details and let AI write your summary, polish your experience, and export everything as JSON.</p>
+<div class="video-wrap">
+  <img src="/video" alt="webcam feed"/>
+</div>
 
-    <div class="form-section">
-      <div class="section-label">Personal Info</div>
-      <div class="form-grid">
-        <input type="text" id="name" placeholder="Full Name"/>
-        <input type="text" id="phone" placeholder="Phone Number"/>
-        <input type="email" id="email" placeholder="Email Address"/>
-        <input type="text" id="location" placeholder="City, Country"/>
-        <input type="text" id="linkedin" placeholder="LinkedIn URL" class="full"/>
-        <input type="text" id="github" placeholder="GitHub URL" class="full"/>
-      </div>
-    </div>
+<div class="emotion-bar">
+  <div class="emotion-label" id="emotionLabel">detecting...</div>
+  <div class="confidence" id="confidenceLabel">confidence: —</div>
+</div>
 
-    <div class="form-section">
-      <div class="section-label">Experience</div>
-      <div id="experienceList"></div>
-      <button class="add-btn" onclick="addExperience()">+ Add Experience</button>
-    </div>
-
-    <div class="form-section">
-      <div class="section-label">Education</div>
-      <div id="educationList"></div>
-      <button class="add-btn" onclick="addEducation()">+ Add Education</button>
-    </div>
-
-    <div class="form-section">
-      <div class="section-label">Skills</div>
-      <input type="text" id="skills" placeholder="e.g. Python, Machine Learning, Flask, PyTorch" class="full-input"/>
-    </div>
-
-    <div class="actions">
-      <button class="btn-primary" onclick="generateResume()">✨ Generate with AI</button>
-      <button class="btn-outline" onclick="exportJSON()" id="exportBtn" disabled>Export JSON</button>
-    </div>
-    <div id="errorMsg" class="error"></div>
-  </div>
-
-  <div class="right">
-    <div class="preview-header">
-      <div class="section-label">Preview</div>
-    </div>
-    <div id="preview" class="preview-empty">
-      <p>Your AI-generated resume will appear here.</p>
-    </div>
-  </div>
+<div class="emojis">
+  <div class="emoji-card" data-emotion="happy">😊 happy</div>
+  <div class="emoji-card" data-emotion="sad">😢 sad</div>
+  <div class="emoji-card" data-emotion="angry">😠 angry</div>
+  <div class="emoji-card" data-emotion="surprise">😲 surprise</div>
+  <div class="emoji-card" data-emotion="fear">😨 fear</div>
+  <div class="emoji-card" data-emotion="neutral">😐 neutral</div>
+  <div class="emoji-card" data-emotion="disgust">🤢 disgust</div>
 </div>
 
 <script>
-  let generatedResume = null;
-  let expCount = 0;
-  let eduCount = 0;
-
-  function addExperience() {
-    const id = expCount++;
-    const div = document.createElement('div');
-    div.className = 'entry-card';
-    div.id = `exp-${id}`;
-    div.innerHTML = `
-      <button class="remove-btn" onclick="document.getElementById('exp-${id}').remove()">✕</button>
-      <div class="form-grid">
-        <input type="text" placeholder="Job Title" class="exp-title"/>
-        <input type="text" placeholder="Company" class="exp-company"/>
-        <input type="text" placeholder="Duration (e.g. 2023–Present)" class="exp-duration full"/>
-        <textarea placeholder="Brief description of what you did..." class="exp-desc full"></textarea>
-      </div>`;
-    document.getElementById('experienceList').appendChild(div);
-  }
-
-  function addEducation() {
-    const id = eduCount++;
-    const div = document.createElement('div');
-    div.className = 'entry-card';
-    div.id = `edu-${id}`;
-    div.innerHTML = `
-      <button class="remove-btn" onclick="document.getElementById('edu-${id}').remove()">✕</button>
-      <div class="form-grid">
-        <input type="text" placeholder="Degree" class="edu-degree"/>
-        <input type="text" placeholder="School" class="edu-school"/>
-        <input type="text" placeholder="Graduation Year" class="edu-year"/>
-      </div>`;
-    document.getElementById('educationList').appendChild(div);
-  }
-
-  function collectData() {
-    const experience = [...document.querySelectorAll('#experienceList .entry-card')].map(c => ({
-      title: c.querySelector('.exp-title').value,
-      company: c.querySelector('.exp-company').value,
-      duration: c.querySelector('.exp-duration').value,
-      description: c.querySelector('.exp-desc').value
-    }));
-    const education = [...document.querySelectorAll('#educationList .entry-card')].map(c => ({
-      degree: c.querySelector('.edu-degree').value,
-      school: c.querySelector('.edu-school').value,
-      year: c.querySelector('.edu-year').value
-    }));
-    return {
-      name: document.getElementById('name').value,
-      phone: document.getElementById('phone').value,
-      email: document.getElementById('email').value,
-      location: document.getElementById('location').value,
-      linkedin: document.getElementById('linkedin').value,
-      github: document.getElementById('github').value,
-      skills: document.getElementById('skills').value.split(',').map(s => s.trim()).filter(Boolean),
-      experience,
-      education
-    };
-  }
-
-  async function generateResume() {
-    const data = collectData();
-    const btn = document.querySelector('.btn-primary');
-    btn.textContent = '⏳ Generating...';
-    btn.disabled = true;
-    document.getElementById('errorMsg').textContent = '';
+  async function poll() {
     try {
-      const res = await fetch('/generate', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
+      const res = await fetch('/emotion');
+      const data = await res.json();
+      document.getElementById('emotionLabel').textContent = data.emotion;
+      document.getElementById('confidenceLabel').textContent = `confidence: ${data.confidence}%`;
+      document.querySelectorAll('.emoji-card').forEach(c => {
+        c.classList.toggle('active', c.dataset.emotion === data.emotion);
       });
-      const result = await res.json();
-      if (!result.success) throw new Error(result.error);
-      generatedResume = result.resume;
-      renderPreview(generatedResume);
-      document.getElementById('exportBtn').disabled = false;
-    } catch(e) {
-      document.getElementById('errorMsg').textContent = 'Error: ' + e.message;
-    }
-    btn.textContent = '✨ Generate with AI';
-    btn.disabled = false;
+    } catch(e){}
+    setTimeout(poll, 800);
   }
-
-  function renderPreview(r) {
-    document.getElementById('preview').innerHTML = `
-      <div class="resume">
-        <div class="resume-header">
-          <h2>${r.name}</h2>
-          <div class="resume-contact">
-            ${r.email ? `<span>${r.email}</span>` : ''}
-            ${r.phone ? `<span>${r.phone}</span>` : ''}
-            ${r.location ? `<span>${r.location}</span>` : ''}
-            ${r.github ? `<span>${r.github}</span>` : ''}
-          </div>
-        </div>
-        ${r.summary ? `<div class="resume-section"><div class="resume-section-title">Summary</div><p>${r.summary}</p></div>` : ''}
-        ${r.enhanced_experience?.length ? `
-          <div class="resume-section">
-            <div class="resume-section-title">Experience</div>
-            ${r.enhanced_experience.map(e => `
-              <div class="resume-entry">
-                <div class="resume-entry-header"><strong>${e.title}</strong><span>${e.duration}</span></div>
-                <div class="resume-entry-sub">${e.company}</div>
-                <ul>${e.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
-              </div>`).join('')}
-          </div>` : ''}
-        ${r.enhanced_education?.length ? `
-          <div class="resume-section">
-            <div class="resume-section-title">Education</div>
-            ${r.enhanced_education.map(e => `
-              <div class="resume-entry">
-                <div class="resume-entry-header"><strong>${e.degree}</strong><span>${e.year}</span></div>
-                <div class="resume-entry-sub">${e.school}</div>
-              </div>`).join('')}
-          </div>` : ''}
-        ${r.enhanced_skills?.length ? `
-          <div class="resume-section">
-            <div class="resume-section-title">Skills</div>
-            <div class="resume-skills">${r.enhanced_skills.map(s => `<span class="skill-tag">${s}</span>`).join('')}</div>
-          </div>` : ''}
-      </div>`;
-  }
-
-  async function exportJSON() {
-    if (!generatedResume) return;
-    const res = await fetch('/export', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(generatedResume)
-    });
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'resume.json';
-    a.click();
-  }
+  poll();
 </script>
 </body>
 </html>
